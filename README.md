@@ -1,5 +1,6 @@
 # AWS-Sagemaker-Image-Classification-Bike-vs-Motorcycle
 
+# Scones Unlimited – Image Classification ML Workflow
 ## Project Overview
 
 This project demonstrates **building, deploying, and monitoring a scalable image classification model** on AWS SageMaker. The model detects whether a delivery driver is using a bicycle or a motorcycle, helping **Scones Unlimited** optimize routing for local deliveries.
@@ -9,8 +10,8 @@ Key goals:
 * Build an image classification model using AWS SageMaker.
 * Deploy a **scalable and monitored endpoint** with Model Monitor.
 * Automate inference workflows using **AWS Lambda** and **Step Functions**.
-* Visualize model predictions and low-confidence alerts.
-* Demonstrate end-to-end, portfolio-ready ML workflow on AWS.
+* Analyze captured predictions and alert on low-confidence inferences.
+* Demonstrate an end-to-end  ML workflow on AWS.
 
 ---
 
@@ -28,8 +29,8 @@ Image classifiers are widely used across industries, from autonomous vehicles to
 
 ### **Step 1: Data Staging**
 
-* Extracted CIFAR-100 dataset from the hosting service.
-* Transformed the data into a usable format for AWS SageMaker (images + label metadata).
+* Dataset: Extracted CIFAR-100 dataset from the hosting service.
+* Process: Transformed the data into a usable format for AWS SageMaker (images + label metadata).
 * Loaded the data into S3 for model training.
 
 **Key technologies:** Python, tarfile, Pandas, AWS S3, SageMaker SDK.
@@ -38,15 +39,14 @@ Image classifiers are widely used across industries, from autonomous vehicles to
 
 ### **Step 2: Model Training & Deployment**
 
-* Trained a SageMaker **built-in image classification model**.
-* Configured **Model Monitor** with `DataCaptureConfig` to capture input/output data and monitor model behavior.
-* Deployed the model to an endpoint and ran test inferences.
+* Training: Used a SageMaker **built-in image classification model**.
+* Deployment: Deployed to a SageMaker endpoint with **data capture enabled**:
 
-**Data Capture:**
+    * Destination S3: `s3://sagemaker-us-east-1-423623866303/data_capture`
+    * Capture options: Input & Output
+    * Sampling: 20%
 
-* Destination S3: `s3://sagemaker-us-east-1-423623866303/data_capture`
-* Capture options: Input & Output
-* Sampling: 20% (later tested with multiple inferences to visualize captured data)
+* Testing: Verified model endpoint by sending test images; predictions captured in S3 
 
 **Key technologies:** SageMaker, DataCaptureConfig, JSONL parsing, matplotlib.
 
@@ -55,13 +55,12 @@ Image classifiers are widely used across industries, from autonomous vehicles to
 ### **Step 3: Lambdas & Step Function Workflow**
 
 * Built **three Lambda functions**:
-
+- Lambda Functions:
   1. **Data generation** – prepare input data for inference.
   2. **Image classification** – call SageMaker endpoint.
   3. **Low-confidence filtering** – identify inferences below the threshold.
 
-* Composed the workflow in **AWS Step Functions** to create a **fully automated inference pipeline**.
-
+- Step function : chained the 3 Lambda functinos to automate inference pipeline
 
 ![Step_fucntion](imgs/stepfunctions_graph.png)
 ![Successful_step_function](imgs/screenshot_suceeded.png)
@@ -69,10 +68,9 @@ Image classifiers are widely used across industries, from autonomous vehicles to
 ---
 
 ### **Step 4: Testing & Evaluation**
-
-* Tested endpoint calls directly and via Step Functions.
-* Verified captured data appears in S3 
-* Built visualizations:
+* Downloaded captured data from S3 using S3Downloader and parsed JSONL files.
+* Built scatter plots to monitor confidence over time.
+* Highlighted low-confidence inferences for model auditing.
 
   * **Scatter plot of max confidence over time**.
   * **Low-confidence alerts**, highlighting points below the production threshold (0.94).
@@ -85,25 +83,11 @@ Image classifiers are widely used across industries, from autonomous vehicles to
 ---
 
 
-
-## Project Structure
-
-```
-.
-├── captured_data/          # Downloaded JSONL files from S3
-├── images/                 # Screenshots & visualizations
-├── lambda.py               # Three Lambda functions for Step Functions workflow
-├── visualize_confidence.py # Python scripts to generate visualizations
-├── requirements.txt        # Python dependencies
-└── README.md
-```
-
----
-
 ## Key Learnings
 
 * SageMaker **data capture is delayed** (\~1 hour), so visualizations may not appear instantly.
 * Step Functions combined with Lambda functions enable **event-driven ML pipelines**.
+* Understanding the end-to-end workflow (data → training → deployment → monitoring → alerting) is critical for production-ready ML systems
 
 ---
 
