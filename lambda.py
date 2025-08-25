@@ -9,7 +9,6 @@ def lambda_handler(event, context):
     """A function to serialize target data from S3"""
 
     # Get the s3 address from the Step Function event input
-    # s3://scones-delivery-project-aug-2025/test/bicycle_s_000031.png
     key = "test/bicycle_s_000059.png"
     bucket = "sagemaker-us-east-1-423623866303"
 
@@ -25,12 +24,14 @@ def lambda_handler(event, context):
     return {
         'statusCode': 200,
         'body': {
-            "image_data": image_data,
+            "image_data": image_data.decode('utf-8'),
             "s3_bucket": bucket,
             "s3_key": key,
             "inferences": []
         }
     }
+
+
 
 
 ## function 2 : classify
@@ -43,13 +44,16 @@ ENDPOINT = "image-classifier-endpoint-23-aug-2pm"
 runtime = boto3.client('sagemaker-runtime')
 
 def lambda_handler(event, context):
-
-    payload = event.get("body", event)
+    print("recieved event:", json.dumps(event))
+    
+    #extract the body from the event
+    if 'body' in event:
+        payload = event['body']
+    else:
+        payload = event
 
     # Decode the image data
     image = base64.b64decode(payload["image_data"])
-    print(type(event["image_data"]), event["image_data"][:50])
-
 
     # Call SageMaker endpoint
     response = runtime.invoke_endpoint(
@@ -58,23 +62,14 @@ def lambda_handler(event, context):
         Body=image
     )
 
-    # Instantiate a Predictor
-    #predictor = Predictor(
-    #    endpoint_name=ENDPOINT,
-    #    serializer=IdentitySerializer("image/png"),
-    #    deserializer=JSONDeserializer()
-    #)
-
     # Make a prediction
-    #inferences = predictor.predict(image)  # this will be a Python object thanks to JSONDeserializer
     inferences = json.loads(response["Body"].read().decode("utf-8"))
-
  
     # We return the data back to the Step Function    
-    event["inferences"] = inferences
+    payload["inferences"] = inferences
     return {
         'statusCode': 200,
-        'body': json.dumps(event)
+        'body': payload
     }
     
     
@@ -85,12 +80,17 @@ import json
 THRESHOLD = .93
 
 def lambda_handler(event, context):
+    # Extract the body from the event
+    if 'body' in event:
+        data = event['body']
+    else:
+        data = event
 
     # Grab the inferences from the event
-    inferences = float(event["inferences"])  # convert string to float
+    inferences = data["inferences"]  # convert string to float
 
     # Check if any values in our inferences are above THRESHOLD
-    meets_threshold = any(val >= THRESHOLD for val in inferences)
+    meets_threshold = any(float(val) >= THRESHOLD for val in inferences)
 
     # If our threshold is met, pass our data back out of the
     # Step Function, else, end the Step Function with an error
